@@ -25,7 +25,7 @@ jobs:
             # 解压到同一目录下
             unzip -q "$zipfile" -d "$target_dir"
             # 解压完成后，可选择删除原压缩包（下一行取消注释可启用）
-            # rm "$zipfile"
+            rm "$zipfile"
           done
 
       - name: Commit and push changes
