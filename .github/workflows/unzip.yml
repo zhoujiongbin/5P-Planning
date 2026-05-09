@@ -1,0 +1,38 @@
+name: Auto Unzip and Commit
+
+on:
+  push:
+    paths:
+      - '**.zip' # 当有 .zip 文件被推送时触发
+
+permissions:
+  contents: write # 授予工作流修改代码的权限
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find and Extract ZIP files
+        run: |
+          # 查找仓库中所有 .zip 文件
+          find . -name "*.zip" -type f | while read zipfile; do
+            echo "正在解压: $zipfile"
+            # 获取 zip 文件所在目录
+            target_dir=$(dirname "$zipfile")
+            # 解压到同一目录下
+            unzip -q "$zipfile" -d "$target_dir"
+            # 解压完成后，可选择删除原压缩包（下一行取消注释可启用）
+            # rm "$zipfile"
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          # 检查是否有变更，有则提交
+          git diff --staged --quiet || git commit -m "Auto-unzip files from archive"
+          git push
