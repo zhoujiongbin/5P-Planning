@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>5P Planning Tool</title>
+<script src="./assets/react.min.js"></script>
+<script src="./assets/react-dom.min.js"></script>
+<link rel="stylesheet" href="./assets/antd.min.css" />
+<script src="./assets/antd.min.js"></script>
+<script src="./assets/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#333;background:#f0f2f5;min-height:100vh;}
+/* ---- TABS ---- */
+.top-bar{background:#fff;border-bottom:1px solid #e8e8e8;padding:12px 24px;display:flex;align-items:center;}
+.tab{padding:5px 16px;cursor:pointer;font-size:13px;color:#666;border:1px solid #d9d9d9;background:#fff;margin-right:-1px;transition:all .15s;line-height:22px;}
+.tab:first-child{border-radius:4px 0 0 4px;}
+.tab:last-child{border-radius:0 4px 4px 0;}
+.tab.active{color:#fff;background:#1677ff;border-color:#1677ff;z-index:1;position:relative;}
+.tab:hover:not(.active){color:#1677ff;border-color:#1677ff;z-index:1;position:relative;}
+/* ---- LAYOUT ---- */
+.page{padding:16px 24px;display:flex;flex-direction:column;gap:12px;}
+/* ---- CARD ---- */
+.card{background:#fff;border-radius:6px;border:1px solid #e8e8e8;}
+/* ---- FILTER BAR ---- */
+.filter-bar{padding:14px 20px 10px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.filter-group{display:flex;flex-direction:column;gap:4px;flex:0;min-width:auto;}
+.filter-btns{margin-left:auto;}
+.filter-group label{font-size:12px;color:#555;font-weight:500;}
+.f-select,.f-input{height:30px;border:1px solid #d9d9d9;border-radius:4px;padding:0 10px;font-size:13px;color:#333;background:#fff;outline:none;}
+.f-select:focus,.f-input:focus{border-color:#333;box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.filter-btns{display:flex;gap:8px;padding-bottom:1px;}
+/* ---- BUTTONS ---- */
+.btn{height:30px;padding:0 14px;border-radius:4px;font-size:13px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;}
+.btn-primary{background:#1677ff;border-color:#1677ff;color:#fff;}
+.btn-primary:hover{background:#4096ff;border-color:#4096ff;}
+.btn-default{background:#fff;border-color:#d9d9d9;color:#333;}
+.btn-default:hover{border-color:#1677ff;color:#1677ff;}
+.btn-danger-txt{background:none;border:none;color:#ff4d4f;cursor:pointer;font-size:13px;padding:0 2px;}
+.btn-danger-txt:hover{text-decoration:underline;}
+.btn-link{background:none;border:none;color:#1677ff;cursor:pointer;font-size:13px;padding:0 2px;}
+.btn-link:hover{text-decoration:underline;}
+/* ---- TOOLBAR ---- */
+.table-toolbar{padding:10px 16px;display:flex;justify-content:flex-end;align-items:center;gap:8px;border-bottom:1px solid #f0f0f0;}
+/* ---- TABLE ---- */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+thead th{background:#fafafa;border-bottom:1px solid #e8e8e8;padding:9px 10px;font-size:12px;font-weight:600;color:#333;white-space:nowrap;text-align:center;}
+thead th.th-field{text-align:left;color:#333;width:260px;min-width:260px;position:sticky;left:0;z-index:2;background:#fafafa;}
+thead th.th-cur{color:#333;}
+thead th.th-total{color:#333;background:#f5f5f5;border-left:1px solid #e8e8e8;}
+/* body rows */
+tbody tr{border-bottom:1px solid #f3f3f3;}
+tbody tr:hover td{background:#f5f9ff !important;}
+td{padding:7px 10px;font-size:13px;color:#333;text-align:center;vertical-align:middle;}
+td.td-field{text-align:left;font-weight:600;background:#fafafa;position:sticky;left:0;z-index:1;border-right:1px solid #e8e8e8;white-space:nowrap;min-width:260px;width:260px;}
+td.td-sub{text-align:left;font-weight:400;color:#555;background:#f9f9f9;position:sticky;left:0;z-index:1;border-right:1px solid #e8e8e8;padding-left:26px;white-space:nowrap;font-size:12px;min-width:260px;width:260px;}
+td.td-cur{}
+td.td-total{font-weight:600;background:#fafafa;border-left:1px solid #e8e8e8;}
+td.neg{color:#ff4d4f;}
+td.formula-cell{color:#333;font-size:11px;}
+</style>
+<style>
+/* series group header */
+tr.series-hdr td{background:#f5f5f5;font-weight:700;color:#333;font-size:13px;}
+/* section divider */
+tr.divider td{padding:0;height:4px;background:#f5f5f5;border-bottom:1px solid #e8e8e8;}
+/* editable cell */
+td.editable:hover{background:#e6f4ff !important;cursor:text;}
+.cell-inp{width:100%;border:1px solid #1677ff;border-radius:2px;padding:1px 4px;font-size:13px;text-align:center;outline:none;background:#fff;}
+/* ---- PAGINATION ---- */
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:10px 16px;border-top:1px solid #f0f0f0;font-size:12px;color:#666;}
+.pg-btn{width:26px;height:26px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
+.pg-btn.active{background:#1677ff;border-color:#1677ff;color:#fff;}
+.pg-btn:hover:not(.active):not(:disabled){border-color:#1677ff;color:#1677ff;}
+.pg-btn:disabled{opacity:.4;cursor:default;}
+/* ---- MODAL ---- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal{background:#fff;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.2);display:flex;flex-direction:column;max-height:88vh;}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #e8e8e8;}
+.modal-hd h3{font-size:15px;font-weight:600;color:#222;}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:#999;padding:2px 6px;border-radius:3px;line-height:1;}
+.modal-close:hover{color:#333;background:#f5f5f5;}
+.modal-bd{padding:16px 22px;overflow-y:auto;flex:1;}
+.modal-ft{padding:11px 22px;border-top:1px solid #e8e8e8;display:flex;justify-content:flex-end;gap:8px;}
+/* modal table */
+.mtable{width:100%;border-collapse:collapse;border:1px solid #e8e8e8;border-radius:4px;overflow:hidden;}
+.mtable th{background:#fafafa;padding:9px 12px;text-align:left;font-size:12px;font-weight:600;color:#333;border-bottom:1px solid #e8e8e8;white-space:normal;word-break:break-word;min-width:80px;}
+.mtable td{padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0;white-space:normal;word-break:break-word;}
+.mtable tr:last-child td{border-bottom:none;}
+.mtable tr:hover td{background:#fafcff;}
+/* add form */
+.add-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 14px;padding:14px;background:#f7faff;border:1px solid #d8e8ff;border-radius:5px;margin-bottom:14px;}
+.form-f{display:flex;flex-direction:column;gap:3px;}
+.form-f label{font-size:11px;color:#555;font-weight:500;}
+.form-f input,.form-f select{height:28px;border:1px solid #d9d9d9;border-radius:3px;padding:0 8px;font-size:13px;outline:none;}
+.form-f input:focus,.form-f select:focus{border-color:#1677ff;}
+.form-actions{grid-column:1/-1;display:flex;gap:8px;}
+/* publish confirm */
+.pub-modal{width:380px;padding:24px 24px 18px;}
+.pub-modal .pub-title{font-size:16px;font-weight:600;color:#222;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.pub-modal .pub-body{color:#555;font-size:13px;line-height:1.7;margin-bottom:18px;}
+.pub-actions{display:flex;gap:10px;justify-content:flex-end;}
+/* summary tab */
+.sum-th{background:#f0f0f0;padding:8px 10px;font-size:12px;font-weight:600;color:#333;white-space:nowrap;border-bottom:2px solid #d0d0d0;border-right:1px solid #e0e0e0;text-align:center;cursor:pointer;user-select:none;}
+.sum-th:hover{background:#e8e8e8;}
+.sum-th.sticky{position:sticky;z-index:3;background:#f0f0f0;}
+.sum-th.cur-month{font-weight:700;}
+.sum-td{padding:6px 10px;font-size:12px;color:#333;border-bottom:1px solid #efefef;border-right:1px solid #f0f0f0;text-align:center;white-space:nowrap;}
+.sum-td.sticky{position:sticky;z-index:1;background:#fff;}
+.sum-td.cur-month{}
+.sum-td.q2col{background:#fafafa;font-weight:600;color:#555;}
+.sum-th.q2col{background:#e8e8e8;color:#333;}
+.filter-ico{font-size:9px;margin-left:3px;opacity:.6;}
+tbody tr:hover .sum-td{background:#f5f9ff;}
+tbody tr:hover .sum-td.sticky{background:#f5f9ff;}
+.list-search-bar{padding:12px 16px 10px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;background:#fff;}
+.batch-toolbar{padding:8px 16px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.batch-left,.batch-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.mini-label{font-size:11px;color:#666;font-weight:500;}
+.chk{width:14px;height:14px;accent-color:#1677ff;cursor:pointer;}
+.act-btn{width:22px;height:22px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;color:#1677ff;display:inline-flex;align-items:center;justify-content:center;}
+.act-btn:hover{border-color:#1677ff;background:#f0f7ff;}
+.cfg-wrap{padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;flex-direction:column;gap:10px;}
+.cfg-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.cfg-title{font-size:14px;font-weight:600;color:#222;}
+.pill-group{display:inline-flex;gap:8px;background:#f5f5f5;border:1px solid #e5e5e5;border-radius:999px;padding:4px;}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid transparent;font-size:13px;color:#333;cursor:pointer;transition:all .15s;user-select:none;}
+.pill:hover{border-color:#91caff;background:#f0f7ff;}
+.pill.active{background:#e6f4ff;border-color:#91caff;color:#1677ff;font-weight:600;}
+.pill-ico{width:14px;text-align:center;font-size:12px;}
+.cfg-banner{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#e6f4ff;border:1px solid #91caff;border-radius:6px;color:#1d39c4;font-size:12px;line-height:1.6;}
+.cfg-banner strong{color:#1677ff;}
+.cfg-banner a{color:#1677ff;cursor:pointer;text-decoration:none;font-weight:600;}
+.cfg-banner a:hover{text-decoration:underline;}
+.cfg-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.cfg-status{font-size:13px;color:#555;}
+.cfg-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn-tall{height:56px;padding:0 12px;flex-direction:column;line-height:1.1;justify-content:center;}
+.btn-primary-outline{background:#e6f4ff;border-color:#91caff;color:#1677ff;}
+.btn-primary-outline:hover{background:#d6ecff;border-color:#69b1ff;}
+.btn-disabled{opacity:.5;cursor:not-allowed;}
+/* icon */
+.ico{font-size:13px;}
+/* Antd v4 风格的嵌套表格展开图标 */
+.arr{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;cursor:pointer;color:rgba(0,0,0,.65);background:#fff;border:1px solid #d9d9d9;border-radius:2px;font-size:14px;line-height:1;margin-right:8px;user-select:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-weight:normal;transition:all .15s ease;position:relative;}
+.arr:hover{color:#1677ff;border-color:#1677ff;}
+.arr::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:1px;background:currentColor;transform:translate(-50%,-50%);}
+.arr::after{content:"";position:absolute;left:50%;top:50%;width:1px;height:8px;background:currentColor;transform:translate(-50%,-50%);transition:transform .15s ease;}
+.arr.open::after{transform:translate(-50%,-50%) scaleY(0);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useCallback, useEffect, useMemo } = React;
+const { Table: AntTable, Select: AntSelect } = antd;
+
+/* ─── CONSTANTS ─── */
+// Generate months dynamically: from Jan of current year to current month + 11
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const NOW_YEAR = 2026;
+const NOW_MONTH = 3; // 0-indexed, April = 3
+
+function generateMonths(startYear, startMonth, endYear, endMonth) {
+  const result = [];
+  let y = startYear, m = startMonth;
+  while (y < endYear || (y === endYear && m <= endMonth)) {
+    const key = MONTH_NAMES[m].toLowerCase() + (y > NOW_YEAR ? String(y) : '');
+    result.push({
+      key,
+      label: MONTH_NAMES[m] + '-' + String(y),
+      cur: (y === NOW_YEAR && m === NOW_MONTH),
+      year: y,
+      month: m,
+    });
+    m++;
+    if (m > 11) { m = 0; y++; }
+  }
+  return result;
+}
+
+// Jan-2026 to Mar-2027 (current month Apr-2026 + 11 = Mar-2027)
+const endM = (NOW_MONTH + 11) % 12;
+const endY = NOW_YEAR + Math.floor((NOW_MONTH + 11) / 12);
+const MONTHS = generateMonths(NOW_YEAR, 0, endY, endM);
+const MK = MONTHS.map(m=>m.key);
+const COUNTRIES = ['Norway','Austria','Denmark','Malaysia','Ireland','Sweden','The Netherlands'];
+const SERIES_LIST = ['X9(H93aEV)','D03-EV','D02-EV'];
+const PROD_TYPES = ['CBU','SKD','DKD'];
+
+/* ─── MONTH VERSION OPTIONS ─── */
+// Each month that has a published submission version
+const VERSION_MONTHS = [
+  {key:'2026-04', label:'Apr-2026 (Current)'},
+  {key:'2026-03', label:'Mar-2026'},
+  {key:'2026-02', label:'Feb-2026'},
+  {key:'2026-01', label:'Jan-2026'},
+  {key:'2025-12', label:'Dec-2025'},
+  {key:'2025-11', label:'Nov-2025'},
+];
+
+/* ─── SEED DATA ─── */
+// seedTable now maps MK keys to values array
+const seedTable = (vals) => { const o={}; MK.forEach((k,i)=>o[k]=vals[i]??null); return o; };
+const VARIANT_NAMES = ['Standard Range Pro','Long Range Pro','AWD Performance Pro'];
+
+const INIT_ALL_DATA = {
+  'X9(H93aEV)': {
+    chinaProduction: seedTable([330,400,400,350,360,400,138,120,310,380,420,360,390,410,145]),
+    variants: {
+      'Standard Range Pro': seedTable([60,0,null,160,200,null,null,80,100,150,180,120,160,170,50]),
+      'Long Range Pro':     seedTable([270,400,400,null,200,200,138,40,210,230,240,240,230,240,95]),
+      'AWD Performance Pro':seedTable([null,null,null,190,null,null,null,null,null,null,null,null,null,null,null]),
+    },
+    kdFactory:   seedTable([null,null,null,350,360,400,138,120,300,370,410,350,380,400,140]),
+    etd:         seedTable([340,330,400,350,360,400,138,120,310,380,420,360,390,410,145]),
+    eta:         seedTable([136,200,340,330,400,400,350,138,120,310,380,420,360,390,410]),
+    ata:         seedTable([80,152,313,0,null,null,null,null,null,null,null,null,null,null,null]),
+    deviation:   seedTable([56,48,27,-131,0,0,0,0,0,0,0,0,0,0,0]),
+    invoice:     seedTable([158,136,130,285,342,285,171,160,150,270,330,275,165,155,140]),
+    natStock:    seedTable([323,306,372,444,371,486,665,625,590,440,380,460,680,640,600]),
+    daySupplyNat:seedTable([70,50,44,44,42,55,75,70,66,48,42,50,72,68,64]),
+    delivery:    seedTable([158,136,130,285,342,285,171,160,150,270,330,275,165,155,140]),
+    dealerStock: seedTable([158,209,419,464,522,637,816,780,740,560,480,580,820,780,730]),
+    daySupplyDlr:seedTable([44,38,77,72,65,74,90,85,80,55,46,62,86,82,76]),
+  },
+  'D03-EV': {
+    chinaProduction: seedTable([210,250,230,280,300,260,180,150,220,260,240,290,310,270,190]),
+    variants: {
+      'Standard Range Pro': seedTable([80,100,90,120,130,100,70,60,85,105,95,125,135,105,75]),
+      'Long Range Pro':     seedTable([90,110,100,110,120,110,80,60,95,115,105,115,125,115,85]),
+      'AWD Performance Pro':seedTable([40,40,40,50,50,50,30,30,40,40,40,50,50,50,30]),
+    },
+    kdFactory:   seedTable([null,null,null,280,300,260,180,150,220,260,240,290,310,270,190]),
+    etd:         seedTable([200,240,230,280,300,260,180,150,220,260,240,290,310,270,190]),
+    eta:         seedTable([100,180,220,240,280,260,200,100,180,220,240,280,260,200,180]),
+    ata:         seedTable([60,110,200,0,null,null,null,null,null,null,null,null,null,null,null]),
+    deviation:   seedTable([40,70,20,-100,0,0,0,0,0,0,0,0,0,0,0]),
+    invoice:     seedTable([120,100,95,200,250,200,130,120,115,195,245,195,125,115,110]),
+    natStock:    seedTable([250,230,280,340,290,380,520,490,460,350,300,370,530,500,470]),
+    daySupplyNat:seedTable([65,48,42,42,40,52,72,68,64,46,40,48,70,66,62]),
+    delivery:    seedTable([120,100,95,200,250,200,130,120,115,195,245,195,125,115,110]),
+    dealerStock: seedTable([120,160,320,360,400,500,640,610,580,440,380,460,650,620,580]),
+    daySupplyDlr:seedTable([42,36,74,70,62,72,88,82,78,52,44,60,84,80,74]),
+  },
+  'D02-EV': {
+    chinaProduction: seedTable([50,60,70,80,90,100,45,40,55,65,75,85,95,105,50]),
+    variants: {
+      'Standard Range Pro': seedTable([20,25,30,30,35,40,15,15,22,27,32,32,37,42,18]),
+      'Long Range Pro':     seedTable([20,25,25,30,35,40,20,15,22,27,28,33,38,43,22]),
+      'AWD Performance Pro':seedTable([10,10,15,20,20,20,10,10,11,11,15,20,20,20,10]),
+    },
+    kdFactory:   seedTable([null,null,null,80,90,100,45,40,55,65,75,85,95,105,50]),
+    etd:         seedTable([50,55,70,80,90,100,45,40,55,65,75,85,95,105,50]),
+    eta:         seedTable([30,45,60,55,80,90,70,35,45,55,65,75,85,95,45]),
+    ata:         seedTable([15,30,50,0,null,null,null,null,null,null,null,null,null,null,null]),
+    deviation:   seedTable([15,15,10,-30,0,0,0,0,0,0,0,0,0,0,0]),
+    invoice:     seedTable([35,30,28,60,75,60,38,35,32,58,72,58,36,33,30]),
+    natStock:    seedTable([70,65,80,95,80,105,145,135,128,96,82,100,142,134,126]),
+    daySupplyNat:seedTable([60,45,40,40,38,50,68,64,60,42,38,46,66,62,58]),
+    delivery:    seedTable([35,30,28,60,75,60,38,35,32,58,72,58,36,33,30]),
+    dealerStock: seedTable([35,45,90,100,112,137,176,168,160,120,104,126,178,170,158]),
+    daySupplyDlr:seedTable([40,34,70,66,60,68,84,78,74,50,42,58,82,78,72]),
+  },
+};
+
+const INIT_SETTINGS = [
+  {id:1,parameterName:'Norway - X9(H93aEV) - SKD', kdProdMonths:5, etdMonths:2, etaMonths:1, bEndDeliveryMonths:1, cEndDeliveryMonths:1, countries:['Norway'], vehicleSeries:['X9(H93aEV)'], productionType:'SKD'},
+  {id:2,parameterName:'Norway - X9(H93aEV) - SKD (Alt)', kdProdMonths:5, etdMonths:2, etaMonths:1, bEndDeliveryMonths:1, cEndDeliveryMonths:1, countries:['Norway'], vehicleSeries:['X9(H93aEV)'], productionType:'SKD'},
+  {id:3,parameterName:'Norway - X9(H93aEV) - SKD (3M)', kdProdMonths:5, etdMonths:3, etaMonths:1, bEndDeliveryMonths:1, cEndDeliveryMonths:2, countries:['Norway'], vehicleSeries:['X9(H93aEV)'], productionType:'SKD'},
+  {id:4,parameterName:'Austria - D03-EV - CBU', kdProdMonths:5, etdMonths:1, etaMonths:1, bEndDeliveryMonths:1, cEndDeliveryMonths:1, countries:['Austria'], vehicleSeries:['D03-EV'], productionType:'CBU'},
+  {id:5,parameterName:'Denmark - X9(H93aEV) - CBU', kdProdMonths:5, etdMonths:1, etaMonths:2, bEndDeliveryMonths:1, cEndDeliveryMonths:1, countries:['Denmark'], vehicleSeries:['X9(H93aEV)'], productionType:'CBU'},
+  {id:6,parameterName:'Norway - X9(H93aEV) - DKD', kdProdMonths:5, etdMonths:2, etaMonths:2, bEndDeliveryMonths:2, cEndDeliveryMonths:2, countries:['Norway'], vehicleSeries:['X9(H93aEV)'], productionType:'DKD'},
+];
+
+const INIT_LOGS = [
+  {ver:5, date:'2026-04-15 10:20:33', operator:'Yang Jing'},
+  {ver:4, date:'2026-03-28 09:15:00', operator:'Yin Bin'},
+  {ver:3, date:'2026-02-20 14:35:22', operator:'Yang Jing'},
+  {ver:2, date:'2026-01-18 11:00:10', operator:'BX3835'},
+  {ver:1, date:'2025-12-10 08:45:00', operator:'Yang Jing'},
+];
+
+const rowTotal = (obj) => Object.values(obj).reduce((s,v)=>s+(v||0),0);
+const fmtN = (v) => (v===null||v===undefined) ? '' : v;
+const fmtLog = (v) => (v===null||v===undefined||v==='') ? '—' : String(v);
+
+function hashInt(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function demoFillValue({series, field, variant, monthKey}) {
+  const h = hashInt(`${series}|${field}|${variant || ''}|${monthKey}`);
+  if (field === 'natStock' || field === 'dealerStock') return 300 + (h % 500);
+  if (field === 'daySupplyNat' || field === 'daySupplyDlr') return 30 + (h % 90);
+  if (field === 'deviation') return (h % 7) === 0 ? (h % 15) : 0;
+  if (field === 'ata') return (h % 5) === 0 ? 0 : 100 + (h % 350);
+  if (variant) return 20 + (h % 220);
+  return 120 + (h % 360);
+}
+
+function calcSelectCh(values, extra = 4, min = 18, max = 44) {
+  const maxLen = (values || []).reduce((m, v) => Math.max(m, String(v || '').length), 0);
+  const ch = Math.min(max, Math.max(min, maxLen + extra));
+  return `${ch}ch`;
+}
+
+function fillDemoAllData(allData, opts = {}) {
+  const preserveChinaFuture = !!opts.preserveChinaFuture;
+  const nowAbs = NOW_YEAR * 12 + NOW_MONTH;
+  const isFuture = (m) => (m.year * 12 + m.month) > nowAbs;
+  const fields = ['chinaProduction','kdFactory','etd','eta','ata','deviation','invoice','natStock','daySupplyNat','delivery','dealerStock','daySupplyDlr'];
+  const out = {};
+  SERIES_LIST.forEach(series => {
+    const src = allData?.[series] || {};
+    const nextSeries = {};
+    fields.forEach(field => {
+      const srcObj = src[field] || {};
+      const dstObj = {};
+      MONTHS.forEach(m => {
+        const v = srcObj[m.key];
+        const shouldPreserveEmpty = preserveChinaFuture && field === 'chinaProduction' && isFuture(m);
+        if(shouldPreserveEmpty) {
+          dstObj[m.key] = (v === null || v === undefined) ? null : v;
+        } else {
+          dstObj[m.key] = (v === null || v === undefined)
+            ? demoFillValue({series, field, monthKey: m.key})
+            : v;
+        }
+      });
+      nextSeries[field] = dstObj;
+    });
+    const srcVariants = src.variants || {};
+    const dstVariants = {};
+    Object.keys(srcVariants).forEach(name => {
+      const srcObj = srcVariants[name] || {};
+      const dstObj = {};
+      MONTHS.forEach(m => {
+        const v = srcObj[m.key];
+        const shouldPreserveEmpty = preserveChinaFuture && isFuture(m);
+        if(shouldPreserveEmpty) {
+          dstObj[m.key] = (v === null || v === undefined) ? null : v;
+        } else {
+          dstObj[m.key] = (v === null || v === undefined)
+            ? demoFillValue({series, field: 'chinaProduction', variant: name, monthKey: m.key})
+            : v;
+        }
+      });
+      dstVariants[name] = dstObj;
+    });
+    nextSeries.variants = dstVariants;
+    out[series] = { ...src, ...nextSeries };
+  });
+  return out;
+}
+
+function formatTS(ts) {
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatRelativeTime(ts) {
+  if(!ts) return '';
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if(s < 60) return `${s}秒前`;
+  const m = Math.floor(s / 60);
+  if(m < 60) return `${m}分钟前`;
+  const h = Math.floor(m / 60);
+  if(h < 24) return `${h}小时前`;
+  const d = Math.floor(h / 24);
+  return `${d}天前`;
+}
+
+/* ─── CELL (editable or read-only) ─── */
+function Cell({val, editable, cur, onChange}) {
+  const [editing,setEditing] = useState(false);
+  const [tmp,setTmp] = useState('');
+  const inp = useRef();
+  const startEdit = () => { if(!editable) return; setTmp(val??''); setEditing(true); setTimeout(()=>inp.current&&inp.current.select(),50); };
+  const commit = () => { const n=parseInt(tmp,10); onChange(isNaN(n)?null:n); setEditing(false); };
+  const cls = ['td-'+(cur?'cur':'num'), editable?'editable':'', val<0?'neg':''].filter(Boolean).join(' ');
+  if(editing) return <td className={cls} style={cur?{background:'#fff9f9'}:{}}><input ref={inp} className="cell-inp" value={tmp} onChange={e=>setTmp(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')commit(); if(e.key==='Escape')setEditing(false);}} /></td>;
+  return <td className={cls} style={cur?{background:'#fff9f9'}:{}} onClick={startEdit}>{fmtN(val)}</td>;
+}
+
+/* ─── SETTINGS MODAL ─── */
+function SettingsModal({onClose, rows, setRows}) {
+  const [formOpen,setFormOpen] = useState(false);
+  const [editId,setEditId] = useState(null);
+  const blank = {parameterName:'',kdProdMonths:'',etdMonths:'',etaMonths:'',bEndDeliveryMonths:'',cEndDeliveryMonths:'',countries:[],vehicleSeries:[],productionType:''};
+  const [form,setForm] = useState(blank);
+  const nextId = useRef((rows?.length || 0) + 1);
+  const [fltName, setFltName] = useState('');
+  const [fltCountry, setFltCountry] = useState('');
+  const [fltSeries, setFltSeries] = useState('');
+  const [fltProdType, setFltProdType] = useState('');
+
+  const sortedCountries = useMemo(() => [...COUNTRIES].sort((a,b)=>a.localeCompare(b)), []);
+  const sortedSeries = useMemo(() => [...SERIES_LIST].sort((a,b)=>a.localeCompare(b)), []);
+  const filterOption = useCallback((input, option) => {
+    const label = (option?.children ?? '').toString().toLowerCase();
+    return label.includes((input || '').toLowerCase());
+  }, []);
+
+  const filteredRows = useMemo(() => {
+    const kw = (fltName || '').trim().toLowerCase();
+    return (rows || []).filter(r => {
+      if(kw && !String(r.parameterName || '').toLowerCase().includes(kw)) return false;
+      if(fltCountry && !(Array.isArray(r.countries) && r.countries.includes(fltCountry))) return false;
+      if(fltSeries && !(Array.isArray(r.vehicleSeries) && r.vehicleSeries.includes(fltSeries))) return false;
+      if(fltProdType && String(r.productionType || '') !== fltProdType) return false;
+      return true;
+    });
+  }, [rows, fltName, fltCountry, fltSeries, fltProdType]);
+
+  const openAdd  = () => { setForm(blank); setEditId(null); setFormOpen(true); };
+  const openEdit = (r) => {
+    setForm({
+      ...r,
+      kdProdMonths: String(r.kdProdMonths ?? ''),
+      etdMonths: String(r.etdMonths ?? ''),
+      etaMonths: String(r.etaMonths ?? ''),
+      bEndDeliveryMonths: String(r.bEndDeliveryMonths ?? ''),
+      cEndDeliveryMonths: String(r.cEndDeliveryMonths ?? ''),
+      countries: Array.isArray(r.countries) ? r.countries : String(r.countries || '').split(',').map(s=>s.trim()).filter(Boolean),
+      vehicleSeries: Array.isArray(r.vehicleSeries) ? r.vehicleSeries : String(r.vehicleSeries || '').split(',').map(s=>s.trim()).filter(Boolean),
+    });
+    setEditId(r.id);
+    setFormOpen(true);
+  };
+  const closeForm = () => setFormOpen(false);
+  const confirm = () => {
+    const row = {
+      ...form,
+      kdProdMonths: parseInt(form.kdProdMonths, 10) || 0,
+      etdMonths: parseInt(form.etdMonths, 10) || 0,
+      etaMonths: parseInt(form.etaMonths, 10) || 0,
+      bEndDeliveryMonths: parseInt(form.bEndDeliveryMonths, 10) || 0,
+      cEndDeliveryMonths: parseInt(form.cEndDeliveryMonths, 10) || 0,
+    };
+    if(editId) setRows(rs=>rs.map(r=>r.id===editId?{...row,id:editId}:r));
+    else       setRows(rs=>[...rs,{...row,id:nextId.current++}]);
+    setFormOpen(false);
+  };
+  const del  = (id) => setRows(rs=>rs.filter(r=>r.id!==id));
+  const setF = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const FIELDS = [
+    {key:'parameterName',      label:'Parameter Name',               type:'text'},
+    {key:'kdProdMonths',       label:'KD Factory Production Months', type:'number'},
+    {key:'etdMonths',          label:'ETD Months',                   type:'number'},
+    {key:'etaMonths',          label:'ETA Months',                   type:'number'},
+    {key:'bEndDeliveryMonths', label:'B-end Delivery Months',        type:'number'},
+    {key:'cEndDeliveryMonths', label:'C-end Delivery Months',        type:'number'},
+    {key:'countries',          label:'Countries',                    type:'countries'},
+    {key:'vehicleSeries',      label:'Vehicle Series',               type:'vehicleSeries'},
+    {key:'productionType',     label:'Production Type',              type:'prodType', opts:PROD_TYPES},
+  ];
+
+  const isFormValid =
+    String(form.parameterName || '').trim() &&
+    Array.isArray(form.countries) && form.countries.length > 0 &&
+    Array.isArray(form.vehicleSeries) && form.vehicleSeries.length > 0 &&
+    String(form.productionType || '').trim() &&
+    String(form.kdProdMonths || '').trim() &&
+    String(form.etdMonths || '').trim() &&
+    String(form.etaMonths || '').trim() &&
+    String(form.bEndDeliveryMonths || '').trim() &&
+    String(form.cEndDeliveryMonths || '').trim();
+
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{width:920}}>
+        <div className="modal-hd">
+          <h3>Settings</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-bd">
+          <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:12,alignItems:'flex-end'}}>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'flex-end'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:11,color:'#555',fontWeight:500}}>Parameter Name</label>
+                <input className="f-input" style={{height:28,width:'22ch'}} placeholder="Search..." value={fltName} onChange={e=>setFltName(e.target.value)} />
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:11,color:'#555',fontWeight:500}}>Country</label>
+                <AntSelect
+                  showSearch
+                  allowClear
+                  filterOption={filterOption}
+                  placeholder="All"
+                  value={fltCountry || undefined}
+                  onChange={(v)=>setFltCountry(v || '')}
+                  style={{width:'18ch'}}
+                >
+                  {sortedCountries.map(c => <AntSelect.Option key={c} value={c}>{c}</AntSelect.Option>)}
+                </AntSelect>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:11,color:'#555',fontWeight:500}}>Vehicle Series</label>
+                <AntSelect
+                  showSearch
+                  allowClear
+                  filterOption={filterOption}
+                  placeholder="All"
+                  value={fltSeries || undefined}
+                  onChange={(v)=>setFltSeries(v || '')}
+                  style={{width:'20ch'}}
+                >
+                  {sortedSeries.map(s => <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>)}
+                </AntSelect>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:11,color:'#555',fontWeight:500}}>Production Type</label>
+                <AntSelect
+                  showSearch
+                  allowClear
+                  filterOption={filterOption}
+                  placeholder="All"
+                  value={fltProdType || undefined}
+                  onChange={(v)=>setFltProdType(v || '')}
+                  style={{width:'14ch'}}
+                >
+                  {PROD_TYPES.map(p => <AntSelect.Option key={p} value={p}>{p}</AntSelect.Option>)}
+                </AntSelect>
+              </div>
+            </div>
+            <button className="btn btn-primary" style={{height:28,fontSize:12}} onClick={openAdd}>+ Add</button>
+          </div>
+          <table className="mtable">
+            <thead><tr>
+              <th>Parameter Name</th>
+              <th>KD Factory Production Months</th><th>ETD Months</th><th>ETA Months</th>
+              <th>B-end Delivery Months</th><th>C-end Delivery Months</th>
+              <th>Countries</th><th>Vehicle Series</th><th>Production Type</th>
+              <th>Action</th>
+            </tr></thead>
+            <tbody>
+              {filteredRows.map(r=>(
+                <tr key={r.id}>
+                  <td>{r.parameterName}</td>
+                  <td>{r.kdProdMonths}</td><td>{r.etdMonths}</td><td>{r.etaMonths}</td>
+                  <td>{r.bEndDeliveryMonths}</td><td>{r.cEndDeliveryMonths}</td>
+                  <td>{Array.isArray(r.countries) ? r.countries.join(', ') : (r.countries || '')}</td>
+                  <td>{Array.isArray(r.vehicleSeries) ? r.vehicleSeries.join(', ') : (r.vehicleSeries || '')}</td>
+                  <td>{r.productionType}</td>
+                  <td style={{whiteSpace:'nowrap'}}>
+                    <span style={{display:'inline-flex',gap:8,alignItems:'center',flexWrap:'nowrap'}}>
+                      <button className="btn-link" style={{display:'inline-flex'}} onClick={()=>openEdit(r)}>Edit</button>
+                      <button className="btn-danger-txt" style={{display:'inline-flex'}} onClick={()=>del(r.id)}>Delete</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="pager">
+            <span>{filteredRows.length} record(s) in total</span>
+            <button className="pg-btn active">1</button>
+          </div>
+        </div>
+        <div className="modal-ft"></div>
+      </div>
+      {formOpen && (
+        <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1100}}>
+          <div style={{background:'#fff',borderRadius:6,boxShadow:'0 8px 32px rgba(0,0,0,.22)',width:440,display:'flex',flexDirection:'column'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 20px',borderBottom:'1px solid #e8e8e8'}}>
+              <span style={{fontSize:15,fontWeight:600,color:'#222'}}>Settings</span>
+              <button className="modal-close" onClick={closeForm}>✕</button>
+            </div>
+            <div style={{padding:'18px 24px',display:'flex',flexDirection:'column',gap:14,overflowY:'auto',maxHeight:'60vh'}}>
+              {FIELDS.map(f=>{
+                const isDisabled = f.disabled;
+                return (
+                  <div key={f.key}>
+                    <div style={{fontSize:12,color: isDisabled?'#bbb':'#333',marginBottom:5,fontWeight:500}}>
+                      <span style={{color:'#ff4d4f',marginRight:3}}>*</span>{f.label}
+                    </div>
+                    {f.type==='select'
+                      ? <select className="f-select" style={{width:'100%',height:32}} value={form[f.key]} onChange={e=>{
+                          const v=e.target.value;
+                          setF(f.key,v);
+                        }}>
+                          <option value="">Select</option>
+                          {f.opts.map(o=><option key={o} value={o}>{o}</option>)}
+                        </select>
+                      : f.type==='countries'
+                        ? <AntSelect
+                            mode="multiple"
+                            showSearch
+                            filterOption={filterOption}
+                            placeholder="Select"
+                            value={form.countries}
+                            onChange={(v)=>setF('countries', v)}
+                            style={{width:'100%'}}
+                          >
+                            {sortedCountries.map(c => <AntSelect.Option key={c} value={c}>{c}</AntSelect.Option>)}
+                          </AntSelect>
+                      : f.type==='vehicleSeries'
+                        ? <AntSelect
+                            mode="multiple"
+                            showSearch
+                            filterOption={filterOption}
+                            placeholder="Select"
+                            value={form.vehicleSeries}
+                            onChange={(v)=>setF('vehicleSeries', v)}
+                            style={{width:'100%'}}
+                          >
+                            {sortedSeries.map(s => <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>)}
+                          </AntSelect>
+                      : f.type==='prodType'
+                        ? <AntSelect
+                            showSearch
+                            filterOption={filterOption}
+                            placeholder="Select"
+                            value={form.productionType}
+                            onChange={(v)=>setF('productionType', v)}
+                            style={{width:'100%'}}
+                          >
+                            {PROD_TYPES.map(p => <AntSelect.Option key={p} value={p}>{p}</AntSelect.Option>)}
+                          </AntSelect>
+                      : <input type={f.type==='number'?'number':'text'} className="f-input"
+                          disabled={isDisabled}
+                          style={{width:'100%',height:32,background:isDisabled?'#f5f5f5':'#fff',color:isDisabled?'#bbb':'#333',cursor:isDisabled?'not-allowed':'text'}}
+                          value={isDisabled?'':form[f.key]}
+                          onChange={e=>setF(f.key,e.target.value)} />
+                    }
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{padding:'12px 24px',borderTop:'1px solid #e8e8e8',display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn btn-default" onClick={closeForm}>Cancel</button>
+              <button className={'btn btn-primary'+(!isFormValid?' btn-disabled':'')} disabled={!isFormValid} onClick={confirm}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── LOG MODAL ─── */
+function LogModal({onClose, logs, mode = 'submission', monthVersion}) {
+
+  const formatMonthVersionLabel = (key) => {
+    const [yy, mm] = String(key).split('-').map(n => parseInt(n, 10));
+    if(!yy || !mm) return key;
+    const mIdx = mm - 1;
+    return `${MONTH_NAMES[mIdx]}-${yy}`;
+  };
+
+  const buildSubmissionRows = () => (logs && logs.length ? logs : INIT_LOGS.map(l => ({
+    ver: l.ver,
+    date: l.date,
+    operator: l.operator,
+    operation: `Submit v${l.ver}`,
+  })));
+
+  const buildSummaryProdRows = () => {
+    const key = monthVersion || `${NOW_YEAR}-${String(NOW_MONTH + 1).padStart(2,'0')}`;
+    const label = formatMonthVersionLabel(key);
+    const base = (logs && logs.length) ? logs[0] : INIT_LOGS[0];
+    return [{
+      ver: base?.ver ?? '',
+      date: base?.date ?? '',
+      operator: base?.operator ?? '',
+      operation: `Lock the month version of ${label}`,
+    }];
+  };
+
+  const rows = mode === 'summaryProd' ? buildSummaryProdRows() : buildSubmissionRows();
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{width:640}}>
+        <div className="modal-hd">
+          <h3>Log</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-bd">
+          <table className="mtable">
+            <thead><tr>
+              <th>Submit Date</th><th>Operator</th><th>Operation</th><th>Export</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((l, idx)=>(
+                <tr key={l.id || l.ver || idx}>
+                  <td>{l.date}</td>
+                  <td>{l.operator}</td>
+                  <td>{l.operation || ''}</td>
+                  <td>
+                    <button className="btn-link" title="Download this version" onClick={()=>alert(`Exporting version v${l.ver || ''}…`)}>
+                      ⬇ Export
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="pager">
+            <span>{rows.length} record(s) in total</span>
+            <button className="pg-btn active">1</button>
+          </div>
+        </div>
+        <div className="modal-ft"></div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── CONFIRM MODAL (generic) ─── */
+function ConfirmModal({onClose, onConfirm, title, body, confirmText}) {
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal pub-modal">
+        <div className="pub-title">{title}</div>
+        <div className="pub-body">{body}</div>
+        <div className="pub-actions">
+          <button className="btn btn-default" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={onConfirm}>{confirmText}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── PLANNING TABLE ─── */
+const FIELD_DEFS = [
+  { field:'chinaProduction', label:'China Production',     expandable:true },
+  { field:'kdFactory',       label:'KD Factory Production',formula:true, expandable:true },
+  { field:'etd',             label:'ETD',                   formula:true, expandable:true },
+  { field:'eta',             label:'ETA',                   formula:true, expandable:true },
+  { field:'ata',             label:'Actual Arrival',        expandable:true },
+  { field:'deviation',       label:'Deviation',             formula:true, expandable:true },
+  { field:'_divider1' },
+  { field:'invoice',         label:'B-end Delivery',        formula:true, expandable:true },
+  { field:'natStock',        label:'National Stock',        formula:true, expandable:true },
+  { field:'daySupplyNat',    label:'Day Supply (National)', formula:true, expandable:true },
+  { field:'_divider2' },
+  { field:'delivery',        label:'C-end Delivery',        formula:true, expandable:true },
+  { field:'dealerStock',     label:'Dealer Stock',          formula:true, expandable:true },
+  { field:'daySupplyDlr',    label:'Day Supply (Dealer)',   formula:true, expandable:true },
+];
+
+function PlanningTable({editMode, summaryPublished, activeSeries, allData, onSetCell, onSetVariant, editingVariant, setEditingVariant, editableMonthKeys, canEditVariantRow, calcParamsBySeries, onDeleteVariant}) {
+  const [expandedFields, setExpandedFields] = useState({ chinaProduction: true });
+
+  const isAllMode = activeSeries === 'All';
+  const seriesList = isAllMode ? SERIES_LIST : [activeSeries];
+
+  const toggleExpand = (field) => setExpandedFields(e => ({ ...e, [field]: !e[field] }));
+
+  const isLocked = (mkey) => summaryPublished && mkey === 'mar';
+  const canEdit = (mkey) => editMode && !isLocked(mkey);
+
+  const idxByKey = useMemo(() => {
+    const o = {};
+    MONTHS.forEach((m, i) => { o[m.key] = i; });
+    return o;
+  }, []);
+
+  const shiftObj = useCallback((src, offset) => {
+    const out = {};
+    MONTHS.forEach((m, i) => {
+      const raw = i - (offset || 0);
+      let j = raw;
+      while (j < 0) j += 12;
+      if(j < 0 || j >= MONTHS.length) out[m.key] = null;
+      else out[m.key] = (src && src[MONTHS[j].key] !== undefined) ? src[MONTHS[j].key] : null;
+    });
+    return out;
+  }, []);
+
+  const fieldOffset = useCallback((field, params) => {
+    const p = params || {};
+    if(field === 'kdFactory') return p.kdProdMonths || 0;
+    if(field === 'etd') return p.etdMonths || 0;
+    if(field === 'eta') return p.etaMonths || 0;
+    if(field === 'invoice') return p.bEndDeliveryMonths || 0;
+    if(field === 'delivery') return p.cEndDeliveryMonths || 0;
+    return 0;
+  }, []);
+
+  const getValsForField = useCallback((series, data, field) => {
+    if(!data) return null;
+    if(field === 'chinaProduction') return data.chinaProduction;
+    const params = calcParamsBySeries ? calcParamsBySeries[series] : null;
+    const off = fieldOffset(field, params);
+    if(off && (field === 'kdFactory' || field === 'etd' || field === 'eta' || field === 'invoice' || field === 'delivery')) {
+      return shiftObj(data.chinaProduction, off);
+    }
+    return data[field];
+  }, [calcParamsBySeries, fieldOffset, shiftObj]);
+
+  const getVariantForField = useCallback((series, data, field, variantName) => {
+    const v = data?.variants?.[variantName];
+    if(!v) return null;
+    if(field === 'chinaProduction') return v;
+    const params = calcParamsBySeries ? calcParamsBySeries[series] : null;
+    const off = fieldOffset(field, params);
+    if(off && (field === 'kdFactory' || field === 'etd' || field === 'eta' || field === 'invoice' || field === 'delivery')) {
+      return shiftObj(v, off);
+    }
+    return v;
+  }, [calcParamsBySeries, fieldOffset, shiftObj]);
+
+  const colSpan = 1 + MONTHS.length;
+
+  const renderFieldRows = (series, fd, idx) => {
+    if(fd.field.startsWith('_divider')) {
+      return [<tr key={fd.field+'_'+series} className="divider"><td colSpan={colSpan}></td></tr>];
+    }
+    const data = allData[series];
+    if(!data) return null;
+    const vals = getValsForField(series, data, fd.field);
+    const rows = [];
+
+    const isChina = fd.field === 'chinaProduction';
+    const editableThisField = isChina;
+    const expanded = !!expandedFields[fd.field];
+
+    // main field row
+    if(editableThisField) {
+      rows.push(
+        <tr key={series+'_'+fd.field}>
+          {isAllMode && idx===0 ? null : null}
+          <td className="td-field">
+            {fd.expandable ? <span className={'arr'+(expanded?' open':'')} onClick={() => toggleExpand(fd.field)} aria-label={expanded ? 'Collapse' : 'Expand'}></span> : null}
+            {fd.label}
+          </td>
+          {MONTHS.map(m=>(
+            <Cell key={m.key} val={vals[m.key]} editable={canEdit(m.key)} cur={m.cur}
+              onChange={v=>onSetCell(series,fd.field,m.key,v)} />
+          ))}
+        </tr>
+      );
+    } else {
+      rows.push(
+        <tr key={series+'_'+fd.field}>
+          <td className="td-field" style={{fontWeight:500,fontSize:13}}>
+            {fd.expandable ? <span className={'arr'+(expanded?' open':'')} onClick={() => toggleExpand(fd.field)} aria-label={expanded ? 'Collapse' : 'Expand'}></span> : null}
+            {fd.label}
+          </td>
+          {MONTHS.map(m=>{
+            const v = vals[m.key];
+            const locked = isLocked(m.key);
+            return <td key={m.key} className={[m.cur?'td-cur':'', v<0?'neg':'', fd.formula?'formula-cell':''].filter(Boolean).join(' ')}
+              style={locked?{background:'#fafafa'}:{}}>{fmtN(v)}</td>;
+          })}
+        </tr>
+      );
+    }
+
+    if(fd.expandable && expanded) {
+      const variantMap = data.variants || {};
+      const keys = Object.keys(variantMap);
+      if(keys.length) {
+        const order = [];
+        VARIANT_NAMES.forEach(n => { if(keys.includes(n)) order.push(n); });
+        keys.filter(k => !order.includes(k)).sort().forEach(k => order.push(k));
+
+        order.forEach(name => {
+          const vvals = getVariantForField(series, data, fd.field, name);
+          const rowKey = `${series}||${name}`;
+          const isEditingRow = isChina && typeof editingVariant === 'string' && editingVariant === rowKey;
+
+          rows.push(
+            <tr key={series+'_'+fd.field+'_cfg_'+name}>
+              <td className="td-sub" style={isChina ? {paddingLeft:10} : {paddingLeft:28}}>
+                {isChina
+                  ? (
+                    <span style={{display:'inline-flex',alignItems:'center',gap:8}}>
+                      <button className="btn-danger-txt" disabled={!canEditVariantRow} onClick={(e)=>{e.stopPropagation(); if(!canEditVariantRow) return; onDeleteVariant && onDeleteVariant(series, name);}}>Delete</button>
+                      <button className="btn-link" disabled={!canEditVariantRow} onClick={(e)=>{e.stopPropagation(); if(!canEditVariantRow) return; setEditingVariant(cur => cur === rowKey ? null : rowKey);}}>
+                        {isEditingRow ? 'Save' : 'Edit'}
+                      </button>
+                      <span>{name}</span>
+                    </span>
+                  )
+                  : name
+                }
+              </td>
+              {MONTHS.map(m => {
+                const locked = isLocked(m.key);
+                const inEditableRange = editableMonthKeys && editableMonthKeys.includes(m.key);
+                const canEditThisCell = canEditVariantRow && isEditingRow && inEditableRange && !locked;
+
+                if(canEditThisCell) {
+                  const curVal = (variantMap[name] || {})[m.key];
+                  return (
+                    <Cell key={m.key} val={curVal} editable={true} cur={m.cur}
+                      onChange={v=>onSetVariant(series, name, m.key, v)} />
+                  );
+                }
+
+                const cls = ['td-num', m.cur ? 'td-cur' : '', locked ? '' : ''].filter(Boolean).join(' ');
+                const val = vvals && vvals[m.key] !== undefined && vvals[m.key] !== null ? fmtN(vvals[m.key]) : '-';
+                return (
+                  <td key={m.key} className={cls} style={locked ? {background:'#fafafa'} : {}}>
+                    {val}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        });
+      }
+    }
+    return rows;
+  };
+
+  const renderSeriesBlock = (series) => {
+    const blockRows = [];
+    // series header row (only in All mode)
+    if(isAllMode) {
+      blockRows.push(
+        <tr key={'hdr_'+series} className="series-hdr">
+          <td colSpan={colSpan} style={{background:'#f0f5ff',fontWeight:700,fontSize:13,color:'#1677ff',padding:'8px 10px',borderBottom:'2px solid #d6e4ff'}}>
+            {series}
+          </td>
+        </tr>
+      );
+    }
+    FIELD_DEFS.forEach((fd,idx)=>{
+      const r = renderFieldRows(series, fd, idx);
+      if(r) blockRows.push(...(Array.isArray(r)?r:[r]));
+    });
+    return blockRows;
+  };
+
+  return (
+    <div className="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th className="th-field">Field</th>
+            {MONTHS.map(m=>(
+              <th key={m.key} className={'month-col'+(m.cur?' th-cur':'')} style={{minWidth:88}}>
+                {m.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {seriesList.map(s=>renderSeriesBlock(s))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ─── SUBMISSION TAB ─── */
+function SubmissionTab({summaryPublished}) {
+  const [country, setCountry] = useState('Norway');
+  const [series,  setSeries]  = useState('X9(H93aEV)');
+  const currentVersionKey = `${NOW_YEAR}-${String(NOW_MONTH + 1).padStart(2,'0')}`;
+  const [monthVersion, setMonthVersion] = useState(currentVersionKey);
+  const [activeCountry, setActiveCountry] = useState('Norway');
+  const [activeSeries,  setActiveSeries]  = useState('X9(H93aEV)');
+  const [activeVersion, setActiveVersion] = useState(currentVersionKey);
+  const [versionMonths, setVersionMonths] = useState(VERSION_MONTHS);
+  const [settingsRows, setSettingsRows] = useState(INIT_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLog,      setShowLog]      = useState(false);
+  const [showPublish,  setShowPublish]  = useState(false);
+  const [published,    setPublished]    = useState(false);
+  const [allData, setAllData] = useState(INIT_ALL_DATA);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [editingVariantKey, setEditingVariantKey] = useState(null);
+  const [opLogs, setOpLogs] = useState([]);
+  const [preserveChinaFuture, setPreserveChinaFuture] = useState(false);
+
+  const onSearch = () => {
+    setActiveCountry(country);
+    setActiveSeries(series);
+    setActiveVersion(monthVersion);
+  };
+  const onPublish = () => { setPublished(true); setShowPublish(false); };
+
+  const versionLabel = versionMonths.find(v=>v.key===activeVersion)?.label || activeVersion;
+  const isAllMode = activeSeries === 'All';
+
+  const activeParams = useMemo(() => {
+    if(activeSeries === 'All') return null;
+    let pool = settingsRows.filter(r =>
+      Array.isArray(r.countries) && r.countries.includes(activeCountry) &&
+      Array.isArray(r.vehicleSeries) && r.vehicleSeries.includes(activeSeries)
+    );
+    return pool[0] || null;
+  }, [settingsRows, activeCountry, activeSeries]);
+
+  const calcParamsBySeries = useMemo(() => {
+    const map = {};
+    SERIES_LIST.forEach(s => {
+      let pool = settingsRows.filter(r =>
+        Array.isArray(r.countries) && r.countries.includes(activeCountry) &&
+        Array.isArray(r.vehicleSeries) && r.vehicleSeries.includes(s)
+      );
+      map[s] = pool[0] || null;
+    });
+    return map;
+  }, [settingsRows, activeCountry]);
+
+  const draftKeyFor = (kind, c, s, v) => `5p_draft_${kind}_${c}_${s}_${v}`;
+  const draftKey = (kind) => draftKeyFor(kind, activeCountry, activeSeries, activeVersion);
+
+  useEffect(() => {
+    const current = currentVersionKey;
+    const has = VERSION_MONTHS.some(v => v.key === current);
+    if(!has) {
+      setVersionMonths(vs => [{ key: current, label: formatVersionLabel(current) }, ...vs]);
+    }
+    setMonthVersion(current);
+    setActiveVersion(current);
+  }, []);
+
+  useEffect(() => {
+    const metaRaw = localStorage.getItem(draftKey('meta'));
+    let keepChinaFutureEmpty = false;
+    if(metaRaw) {
+      try {
+        const meta = JSON.parse(metaRaw);
+        if(meta?.ts) setLastSavedAt(meta.ts);
+        keepChinaFutureEmpty = !!meta?.preserveChinaFuture;
+      } catch {}
+    } else {
+      setLastSavedAt(null);
+    }
+    setPreserveChinaFuture(keepChinaFutureEmpty);
+    const dataRaw = localStorage.getItem(draftKey('data'));
+    if(dataRaw) {
+      try {
+        const parsed = JSON.parse(dataRaw);
+        if(parsed && typeof parsed === 'object') setAllData(fillDemoAllData(parsed, { preserveChinaFuture: keepChinaFutureEmpty }));
+      } catch {}
+    } else {
+      setAllData(fillDemoAllData(INIT_ALL_DATA, { preserveChinaFuture: keepChinaFutureEmpty }));
+    }
+    setEditingVariantKey(null);
+    setOpLogs([]);
+  }, [activeCountry, activeSeries, activeVersion]);
+
+  const persistDraft = (nextData) => {
+    try {
+      const ts = Date.now();
+      localStorage.setItem(draftKey('data'), JSON.stringify(nextData));
+      let prev = {};
+      try { prev = JSON.parse(localStorage.getItem(draftKey('meta')) || '{}') || {}; } catch {}
+      localStorage.setItem(draftKey('meta'), JSON.stringify({ ...prev, ts, preserveChinaFuture }));
+      setLastSavedAt(ts);
+    } catch {}
+  };
+
+  const setCell = (s, field, key, val) => setAllData(d => {
+    const prev = d?.[s]?.[field]?.[key];
+    if(prev === val) return d;
+    const ts = Date.now();
+    const fieldLabel = (FIELD_DEFS.find(f => f.field === field)?.label) || field;
+    const monthLabel = (MONTHS.find(m => m.key === key)?.label) || key;
+    setOpLogs(ls => ([{
+      id: `${ts}_${Math.random().toString(16).slice(2)}`,
+      ver: '',
+      date: formatTS(ts),
+      operator: 'You',
+      operation: `${s} / ${fieldLabel} (Total) / ${monthLabel}: ${fmtLog(prev)} → ${fmtLog(val)}`,
+    }, ...ls]));
+    const next = ({
+      ...d,
+      [s]: {
+        ...d[s],
+        [field]: {
+          ...d[s][field],
+          [key]: val,
+        },
+      },
+    });
+    persistDraft(next);
+    return next;
+  });
+
+  const setVariant = (s, name, key, val) => setAllData(d => {
+    const prev = d?.[s]?.variants?.[name]?.[key];
+    if(prev === val) return d;
+    const ts = Date.now();
+    const fieldLabel = (FIELD_DEFS.find(f => f.field === 'chinaProduction')?.label) || 'China Production';
+    const monthLabel = (MONTHS.find(m => m.key === key)?.label) || key;
+    setOpLogs(ls => ([{
+      id: `${ts}_${Math.random().toString(16).slice(2)}`,
+      ver: '',
+      date: formatTS(ts),
+      operator: 'You',
+      operation: `${s} / ${fieldLabel} / ${name} / ${monthLabel}: ${fmtLog(prev)} → ${fmtLog(val)}`,
+    }, ...ls]));
+    const next = ({
+      ...d,
+      [s]: {
+        ...d[s],
+        variants: {
+          ...(d[s].variants || {}),
+          [name]: {
+            ...((d[s].variants || {})[name] || {}),
+            [key]: val,
+          },
+        },
+      },
+    });
+    persistDraft(next);
+    return next;
+  });
+
+  const deleteVariant = (s, name) => {
+    const ok = confirm(`Delete ${name}?`);
+    if(!ok) return;
+    const ts = Date.now();
+    setAllData(d => {
+      const cur = d?.[s]?.variants || {};
+      const nextVariants = { ...cur };
+      delete nextVariants[name];
+      const next = {
+        ...d,
+        [s]: {
+          ...d[s],
+          variants: nextVariants,
+        },
+      };
+      persistDraft(next);
+      return next;
+    });
+    setEditingVariantKey(cur => (cur === `${s}||${name}` ? null : cur));
+    setOpLogs(ls => ([{
+      id: `${ts}_${Math.random().toString(16).slice(2)}`,
+      ver: '',
+      date: formatTS(ts),
+      operator: 'You',
+      operation: `${s} / China Production / ${name}: Deleted`,
+    }, ...ls]));
+  };
+
+  const addMonth = (key) => {
+    const [yy, mm] = String(key).split('-').map(n => parseInt(n, 10));
+    if(!yy || !mm) return null;
+    const d = new Date(yy, mm - 1, 1);
+    d.setMonth(d.getMonth() + 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    return `${y}-${String(m).padStart(2,'0')}`;
+  };
+
+  const formatVersionLabel = (key) => {
+    const [yy, mm] = String(key).split('-').map(n => parseInt(n, 10));
+    if(!yy || !mm) return key;
+    const mIdx = mm - 1;
+    const base = `${MONTH_NAMES[mIdx]}-${yy}`;
+    if(yy === NOW_YEAR && mIdx === NOW_MONTH) return `${base} (Current)`;
+    return base;
+  };
+
+  const buildNewVersionData = (srcAll) => {
+    const out = {};
+    SERIES_LIST.forEach(s => {
+      const src = (srcAll && srcAll[s]) ? srcAll[s] : INIT_ALL_DATA[s];
+      const dst = {};
+      Object.keys(src).forEach(k => {
+        if(k === 'variants') return;
+        const srcObj = src[k] || {};
+        const dstObj = {};
+        MONTHS.forEach(m => {
+          const isHist = (m.year < NOW_YEAR) || (m.year === NOW_YEAR && m.month <= NOW_MONTH);
+          dstObj[m.key] = isHist ? (srcObj[m.key] ?? null) : null;
+        });
+        dst[k] = dstObj;
+      });
+      const srcVariants = src.variants || {};
+      const dstVariants = {};
+      Object.keys(srcVariants).forEach(name => {
+        const srcObj = srcVariants[name] || {};
+        const dstObj = {};
+        MONTHS.forEach(m => {
+          const isHist = (m.year < NOW_YEAR) || (m.year === NOW_YEAR && m.month <= NOW_MONTH);
+          dstObj[m.key] = isHist ? (srcObj[m.key] ?? null) : null;
+        });
+        dstVariants[name] = dstObj;
+      });
+      dst.variants = dstVariants;
+      out[s] = dst;
+    });
+    return out;
+  };
+
+  const onAddVersion = () => {
+    let newKey = addMonth(activeVersion);
+    if(!newKey) return;
+    const existing = new Set(versionMonths.map(v => v.key));
+    while(existing.has(newKey)) {
+      const next = addMonth(newKey);
+      if(!next) break;
+      newKey = next;
+    }
+
+    const newData = fillDemoAllData(buildNewVersionData(allData), { preserveChinaFuture: true });
+    try {
+      const ts = Date.now();
+      localStorage.setItem(draftKeyFor('data', activeCountry, activeSeries, newKey), JSON.stringify(newData));
+      localStorage.setItem(draftKeyFor('meta', activeCountry, activeSeries, newKey), JSON.stringify({ ts, preserveChinaFuture: true }));
+    } catch {}
+
+    setVersionMonths(vs => [{ key: newKey, label: formatVersionLabel(newKey) }, ...vs]);
+    setMonthVersion(newKey);
+    setActiveVersion(newKey);
+    setEditingVariantKey(null);
+    setOpLogs(ls => ([{
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      ver: '',
+      date: formatTS(Date.now()),
+      operator: 'You',
+      operation: `Add Month Version: ${activeVersion} → ${newKey}`,
+    }, ...ls]));
+  };
+
+  const onImport = () => {
+    if(isAllMode) return;
+    const ts = Date.now();
+    setAllData(d => {
+      const src = INIT_ALL_DATA[activeSeries]?.variants || {};
+      const clone = {};
+      Object.keys(src).forEach(name => {
+        clone[name] = { ...(src[name] || {}) };
+      });
+      const next = {
+        ...d,
+        [activeSeries]: {
+          ...d[activeSeries],
+          variants: fillDemoAllData({ [activeSeries]: { variants: clone } })[activeSeries].variants,
+        },
+      };
+      persistDraft(next);
+      return next;
+    });
+    setOpLogs(ls => ([{
+      id: `${ts}_${Math.random().toString(16).slice(2)}`,
+      ver: '',
+      date: formatTS(ts),
+      operator: 'You',
+      operation: `${activeSeries} / Import configuration variants`,
+    }, ...ls]));
+  };
+
+  const cfgMonths = MONTHS.slice(NOW_MONTH, NOW_MONTH + 6);
+  const editableMonthKeys = cfgMonths.map(m => m.key);
+  const cpVals = !isAllMode ? (allData?.[activeSeries]?.chinaProduction || null) : null;
+  const disableImport = isAllMode;
+  const importDisabledReason = isAllMode ? 'All 模式不支持 Import' : '';
+
+  const countryWidth = calcSelectCh(COUNTRIES);
+  const seriesWidth = calcSelectCh(['All', ...SERIES_LIST]);
+  const versionWidth = calcSelectCh(versionMonths.map(v => v.label));
+
+  const w15 = (w) => `calc(${w} * 1.5)`;
+
+  return (
+    <>
+      {/* Filter bar */}
+      <div className="card">
+        <div className="filter-bar">
+          <div className="filter-group">
+            <label>Country</label>
+            <select className="f-select" style={{width:w15(countryWidth)}} value={country} onChange={e=>setCountry(e.target.value)}>
+              {COUNTRIES.map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Series</label>
+            <select className="f-select" style={{width:w15(seriesWidth)}} value={series} onChange={e=>setSeries(e.target.value)}>
+              <option value="All">All</option>
+              {SERIES_LIST.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Month Version</label>
+            <select className="f-select" style={{width:w15(versionWidth)}} value={monthVersion} onChange={e=>setMonthVersion(e.target.value)}>
+              {versionMonths.map(v=><option key={v.key} value={v.key}>{v.label}</option>)}
+            </select>
+          </div>
+          <div className="filter-btns">
+            <button className="btn btn-default" onClick={()=>{setCountry('Norway');setSeries('X9(H93aEV)');setMonthVersion(currentVersionKey);}}>Reset</button>
+            <button className="btn btn-primary" onClick={onSearch}>Search</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Table card */}
+      <div className="card">
+        <div className="table-toolbar">
+          {!published && <span style={{marginRight:'auto'}}></span>}
+          {published && <span style={{marginRight:'auto',fontSize:12,color:'#333',fontWeight:500,background:'#f0f0f0',border:'1px solid #d9d9d9',borderRadius:10,padding:'2px 10px'}}>Submitted</span>}
+          <button className="btn btn-default" onClick={() => setShowSettings(true)}>Settings</button>
+          <button className="btn btn-default" onClick={() => setShowLog(true)}>Log</button>
+          <button className={'btn btn-default' + (disableImport ? ' btn-disabled' : '')} title={importDisabledReason} disabled={disableImport} onClick={onImport}>Import</button>
+          <button className="btn btn-default" onClick={() => alert('Exporting...')}>Export</button>
+            <button className="btn btn-default" onClick={onAddVersion}>Add Month Version</button>
+          <button className="btn btn-primary" onClick={() => setShowPublish(true)}>Submit</button>
+        </div>
+
+        <PlanningTable activeSeries={activeSeries} editMode={true} summaryPublished={summaryPublished}
+          allData={allData} onSetCell={setCell}
+          onSetVariant={setVariant}
+          editingVariant={editingVariantKey} setEditingVariant={setEditingVariantKey}
+          editableMonthKeys={editableMonthKeys} canEditVariantRow={true}
+          calcParamsBySeries={calcParamsBySeries}
+          onDeleteVariant={deleteVariant} />
+      </div>
+
+      {showSettings && <SettingsModal onClose={()=>setShowSettings(false)} rows={settingsRows} setRows={setSettingsRows} />}
+      {showLog      && <LogModal      onClose={()=>setShowLog(false)} logs={opLogs} />}
+      {showPublish  && <ConfirmModal onClose={()=>setShowPublish(false)} onConfirm={onPublish}
+        title="Submit 5P Plan"
+        body={<>You are about to submit the current 5P planning.<br/>This will create a new version and notify all stakeholders.<br/><strong>This action cannot be undone.</strong></>}
+        confirmText="Confirm" />}
+    </>
+  );
+}
+
+/* ─── SUMMARY DATA ─── */
+const SUM_ROWS = [
+  {series:'E38bV', resource:'KD', region:'Europe',      country:'France',            modelType:'EU Other',  range:'AWD Performance Pro',  jan:105,feb:71, mar:145,apr:485,may:300,jun:20, jul:30, aug:30, sep:20, oct:20, nov:20, dec:null,'jan2027':20, 'feb2027':18, 'mar2027':22},
+  {series:'E38bV', resource:'KD', region:'Europe',      country:'Scotland',          modelType:'EU PTC',    range:'AWD Performance Pro',  jan:1,  feb:0,  mar:3,  apr:9,  may:0,  jun:4,  jul:1,  aug:2,  sep:1,  oct:2,  nov:8,  dec:8,   'jan2027':5,  'feb2027':4,  'mar2027':6},
+  {series:'E38bV', resource:'KD', region:'Europe',      country:'Norway',            modelType:'EU',        range:'AWD Performance Pro',  jan:0,  feb:4,  mar:3,  apr:1,  may:2,  jun:3,  jul:3,  aug:1,  sep:4,  oct:1,  nov:2,  dec:null,'jan2027':2,  'feb2027':3,  'mar2027':2},
+  {series:'E38bV', resource:'KD', region:'Europe',      country:'Poland',            modelType:'EU Other',  range:'Long Range Pro',        jan:12, feb:12, mar:12, apr:0,  may:1,  jun:2,  jul:1,  aug:4,  sep:0,  oct:0,  nov:0,  dec:0,   'jan2027':0,  'feb2027':1,  'mar2027':0},
+  {series:'F30bV', resource:'KD', region:'Europe',      country:'Finland',           modelType:'EU',        range:'Standard Range Pro',    jan:0,  feb:8,  mar:0,  apr:1,  may:0,  jun:1,  jul:1,  aug:1,  sep:1,  oct:4,  nov:1,  dec:null,'jan2027':1,  'feb2027':2,  'mar2027':1},
+  {series:'F30bV', resource:'KD', region:'Europe',      country:'Greece',            modelType:'EU',        range:'Long Range Pro',        jan:10, feb:12, mar:11, apr:5,  may:2,  jun:3,  jul:3,  aug:3,  sep:null,oct:null,nov:null,dec:null,'jan2027':null,'feb2027':null,'mar2027':null},
+  {series:'F30bV', resource:'KD', region:'Europe',      country:'Poland',            modelType:'EU',        range:'AWD Performance Pro',  jan:13, feb:13, mar:13, apr:0,  may:6,  jun:3,  jul:3,  aug:3,  sep:null,oct:null,nov:null,dec:null,'jan2027':null,'feb2027':null,'mar2027':null},
+  {series:'F57aV', resource:'CBU',region:'Europe',      country:'Norway',            modelType:'EU Pioneer',range:'AWD Performance Pro',  jan:null,feb:null,mar:null,apr:100,may:80,jun:150,jul:30,aug:30,sep:20,oct:50,nov:10,dec:10,'jan2027':10,'feb2027':15,'mar2027':12},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Germany & Austria', modelType:'',          range:'Ultra RWD LR',          jan:null,feb:null,mar:null,apr:null,may:null,jun:40,jul:30,aug:20,sep:null,oct:30,nov:30,dec:30,'jan2027':20,'feb2027':25,'mar2027':20},
+  {series:'G02ER', resource:'CBU',region:'Europe',      country:'UK',                modelType:'UK',        range:'7-Seat Ultra AWD',      jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:null,sep:null,oct:null,nov:null,dec:null,'jan2027':null,'feb2027':null,'mar2027':null},
+  {series:'H93aEV',resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'AWD Performance Pro',  jan:0,  feb:0,  mar:7,  apr:0,  may:0,  jun:1,  jul:3,  aug:1,  sep:0,  oct:1,  nov:0,  dec:1,   'jan2027':1,  'feb2027':0,  'mar2027':1},
+  {series:'D02EV', resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'Standard Range Pro',    jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:2,  sep:2,  oct:2,  nov:2,  dec:2,   'jan2027':2,  'feb2027':2,  'mar2027':2},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'Long Range Pro',        jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:2,  sep:2,  oct:2,  nov:2,  dec:2,   'jan2027':2,  'feb2027':2,  'mar2027':2},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'Standard Range Pro',    jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:1,  sep:2,  oct:2,  nov:2,  dec:1,   'jan2027':1,  'feb2027':1,  'mar2027':1},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'Long Range Pro',        jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:1,  sep:2,  oct:2,  nov:2,  dec:1,   'jan2027':1,  'feb2027':1,  'mar2027':1},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Finland',           modelType:'',          range:'AWD Performance Pro',  jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:1,  sep:1,  oct:2,  nov:2,  dec:1,   'jan2027':1,  'feb2027':1,  'mar2027':1},
+  {series:'D03EV', resource:'CBU',region:'Europe',      country:'Spain',             modelType:'',          range:'Plus RWD SR',           jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:10,sep:10,oct:10,nov:10,dec:10,'jan2027':10,'feb2027':10,'mar2027':10},
+  {series:'G02EV', resource:'CBU',region:'Europe',      country:'Sweden',            modelType:'',          range:'7-Seat Ultra 2WD',      jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:5, sep:10, oct:5,  nov:null,dec:null,'jan2027':null,'feb2027':null,'mar2027':null},
+  {series:'G02EV', resource:'CBU',region:'Europe',      country:'Italy',             modelType:'',          range:'7-Seat Ultra AWD',      jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:7, sep:7,  oct:7,  nov:7,  dec:7,   'jan2027':7,  'feb2027':7,  'mar2027':7},
+  {series:'G02EV', resource:'CBU',region:'Europe',      country:'Portugal',          modelType:'',          range:'7-Seat Ultra 2WD',      jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:10,sep:10, oct:7,  nov:7,  dec:7,   'jan2027':7,  'feb2027':7,  'mar2027':7},
+  {series:'D03SV', resource:'CBU',region:'Europe',      country:'Greece',            modelType:'',          range:'Plus RWD SR',           jan:null,feb:null,mar:null,apr:null,may:null,jun:null,jul:30,aug:20,sep:20, oct:20, nov:20, dec:20,  'jan2027':20, 'feb2027':20, 'mar2027':20},
+  {series:'E38bV', resource:'CBU',region:'Middle East', country:'Egypt',             modelType:'N. Africa', range:'AWD Performance Pro',  jan:0,  feb:0,  mar:0,  apr:0,  may:5,  jun:1,  jul:1,  aug:3,  sep:2,  oct:3,  nov:2,  dec:2,   'jan2027':2,  'feb2027':2,  'mar2027':2},
+  {series:'E38bV', resource:'CBU',region:'Middle East', country:'Morocco',           modelType:'N. Africa', range:'Long Range Pro',        jan:0,  feb:0,  mar:0,  apr:0,  may:0,  jun:0,  jul:1,  aug:3,  sep:4,  oct:4,  nov:2,  dec:2,   'jan2027':2,  'feb2027':2,  'mar2027':2},
+];
+
+// Summary uses the same month range as Submission
+const ALL_SUM_MONTHS = MONTHS;
+const STICKY_COLS = [
+  {key:'series',   label:'Series',     w:80},
+  {key:'resource', label:'Resource',   w:78},
+  {key:'region',   label:'Region',     w:90},
+  {key:'country',  label:'Country',    w:130},
+  {key:'modelType',label:'Model Type', w:90},
+  {key:'range',    label:'Range',      w:160},
+];
+
+function SummaryTab({onPublish, summaryPublished}) {
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState(1);
+  const [filters, setFilters] = useState({});
+  const [showLog, setShowLog] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [monthVersion, setMonthVersion] = useState('2026-04');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const uniqueVals = (key) => [...new Set(SUM_ROWS.map(r => r[key]).filter(Boolean))].sort();
+  const visibleMonths = ALL_SUM_MONTHS;
+
+  const filtered = SUM_ROWS.filter(r => {
+    const passFilter = Object.entries(filters).every(([k, v]) => !v || String(r[k]) === v);
+    return passFilter;
+  });
+
+  const sorted = sortKey
+    ? [...filtered].sort((a, b) => (a[sortKey] ?? '') > (b[sortKey] ?? '') ? sortDir : -sortDir)
+    : filtered;
+
+  const rowsWithId = sorted.map((r, i) => ({ ...r, __id: `${r.series || 's'}_${r.country || 'c'}_${r.range || 'r'}_${i}` }));
+  const total = rowsWithId.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageSafe = Math.min(page, totalPages);
+  const startIdx = (pageSafe - 1) * pageSize;
+  const pageRows = rowsWithId.slice(startIdx, startIdx + pageSize);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+
+
+  const toggleSort = (k) => {
+    if (sortKey === k) setSortDir(d => -d);
+    else { setSortKey(k); setSortDir(1); }
+  };
+  const setFilter = (k, v) => { setFilters(f => ({ ...f, [k]: v })); setPage(1); };
+
+  const resetSearch = () => {
+    setFilters({});
+    setMonthVersion('2026-04');
+    setPage(1);
+  };
+
+  const stickyOffsets = STICKY_COLS.reduce((acc, c, i) => {
+    acc[c.key] = i === 0 ? 0 : acc[STICKY_COLS[i - 1].key] + STICKY_COLS[i - 1].w;
+    return acc;
+  }, {});
+
+
+
+  const pageNums = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages <= 7 || i === 1 || i === totalPages || Math.abs(i - pageSafe) <= 1) pageNums.push(i);
+  }
+
+  return (
+    <div className="card">
+
+
+      {/* Filter area - only Reset and Search buttons */}
+      <div className="list-search-bar">
+        {['series', 'resource', 'region', 'country'].map(k => (
+          <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <label className="mini-label">{STICKY_COLS.find(c => c.key === k)?.label || k}</label>
+            <select className="f-select" style={{ height: 28, fontSize: 12, minWidth: 150 }} value={filters[k] || ''} onChange={e => setFilter(k, e.target.value)}>
+              <option value="">All</option>
+              {uniqueVals(k).map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+        ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <label className="mini-label">Month Version</label>
+          <select className="f-select" style={{ height: 28, fontSize: 12, minWidth: 180 }} value={monthVersion} onChange={e => setMonthVersion(e.target.value)}>
+            {VERSION_MONTHS.map(v => <option key={v.key} value={v.key}>{v.label}</option>)}
+          </select>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button className="btn btn-default" style={{ height: 28, fontSize: 12 }} onClick={resetSearch}>Reset</button>
+          <button className="btn btn-primary" style={{ height: 28, fontSize: 12 }} onClick={() => {/* Search functionality - filters are applied automatically */}}>Search</button>
+        </div>
+      </div>
+
+      {/* Action buttons toolbar - positioned at top-right of list area */}
+      <div className="table-toolbar">
+        <span style={{marginRight:'auto'}}></span>
+        <button className="btn btn-default" style={{ fontSize: 12, height: 28 }} onClick={() => setShowLog(true)}>Log</button>
+        <button className="btn btn-default" style={{ fontSize: 12, height: 28 }} onClick={() => alert('Exporting...')}>Export</button>
+        <button className="btn btn-primary" style={{ fontSize: 12, height: 28 }} onClick={() => setShowPublish(true)} disabled={summaryPublished}>{summaryPublished ? 'Locked' : 'Lock'}</button>
+      </div>
+
+      <div className="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              {STICKY_COLS.map(c => (
+                <th key={c.key} className={'th-field' + (sortKey === c.key ? ' active' : '')}
+                  style={{ left: stickyOffsets[c.key], width: c.w, minWidth: c.w, textAlign: 'left', zIndex: 2, background: '#fafafa' }}
+                  onClick={() => toggleSort(c.key)}>
+                  {c.label}
+                </th>
+              ))}
+              {visibleMonths.map(m => (
+                <th key={m.key} className={'month-col' + (m.cur ? ' th-cur' : '')} style={{ minWidth: 88 }}>
+                  {m.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map(r => (
+              <tr key={r.__id}>
+                {STICKY_COLS.map((c, ci) => (
+                  <td key={c.key} className="td-field"
+                    style={{
+                      left: stickyOffsets[c.key], textAlign: 'left', fontWeight: ci === 0 ? 600 : 400,
+                      borderRight: ci === STICKY_COLS.length - 1 ? '2px solid #e8e8e8' : '1px solid #f0f0f0',
+                      background: '#fafafa', minWidth: c.w, width: c.w
+                    }}>
+                    {r[c.key] || ''}
+                  </td>
+                ))}
+                {visibleMonths.map(m => (
+                  <td key={m.key} className={m.cur ? 'td-cur' : ''}>
+                    {r[m.key] !== null && r[m.key] !== undefined ? r[m.key] : '0'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pager">
+        <button className="pg-btn" disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+        {pageNums.map((n, idx) => (
+          <React.Fragment key={`pg_${n}_${idx}`}>
+            {idx > 0 && pageNums[idx - 1] !== n - 1 && <span style={{ padding: '0 4px' }}>...</span>}
+            <button className={'pg-btn' + (n === pageSafe ? ' active' : '')} onClick={() => setPage(n)}>{n}</button>
+          </React.Fragment>
+        ))}
+        <button className="pg-btn" disabled={pageSafe >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</button>
+        <select className="f-select" style={{ height: 26, fontSize: 12, minWidth: 70 }} value={String(pageSize)} onChange={e => { setPageSize(parseInt(e.target.value, 10)); setPage(1); }}>
+          <option value="20">20 / page</option>
+          <option value="50">50 / page</option>
+          <option value="100">100 / page</option>
+        </select>
+      </div>
+
+      {showLog && <LogModal onClose={() => setShowLog(false)} mode="summaryProd" monthVersion={monthVersion} />}
+      {showPublish && <ConfirmModal onClose={() => setShowPublish(false)} onConfirm={() => { onPublish(); setShowPublish(false); }}
+        title="Lock 5P Summary"
+        body={<>You are about to lock the current 5P Summary data.<br />This will freeze the data and prevent further edits in Submission.<br /><strong>This action cannot be undone.</strong></>}
+        confirmText="Confirm" />}
+    </div>
+  );
+}
+
+/* ─── APP ─── */
+function PlaceholderTab({title}) {
+  return (
+    <div className="card" style={{padding:'40px 24px',textAlign:'center',color:'#999',fontSize:14}}>
+      <div style={{fontSize:28,marginBottom:12}}>🚧</div>
+      <div><strong>{title}</strong></div>
+      <div style={{marginTop:6,fontSize:12}}>This tab is under construction.</div>
+    </div>
+  );
+}
+
+const TABS = [
+  {key:'submission',       label:'5P Submission'},
+  {key:'summaryProd',      label:'5P Summary (Production)'},
+  {key:'summaryDelivery',  label:'5P Summary (Delivery)'},
+  {key:'kdSummary',        label:'KD Summary'},
+  {key:'cbuSummary',       label:'CBU Summary'},
+  {key:'salesTarget',      label:'Sales Target'},
+];
+
+function App() {
+  const [tab, setTab] = useState('submission');
+  const [summaryPublished, setSummaryPublished] = useState(false);
+
+  const renderTab = () => {
+    switch(tab) {
+      case 'submission':      return <SubmissionTab summaryPublished={summaryPublished} />;
+      case 'summaryProd':     return <SummaryTab onPublish={()=>setSummaryPublished(true)} summaryPublished={summaryPublished} />;
+      case 'summaryDelivery': return <PlaceholderTab title="5P Summary (Delivery)" />;
+      case 'kdSummary':       return <PlaceholderTab title="KD Summary" />;
+      case 'cbuSummary':      return <PlaceholderTab title="CBU Summary" />;
+      case 'salesTarget':     return <PlaceholderTab title="Sales Target" />;
+      default:                return null;
+    }
+  };
+
+  return (
+    <div>
+      <div className="top-bar">
+        {TABS.map(t=>(
+          <div key={t.key} className={'tab'+(tab===t.key?' active':'')} onClick={()=>setTab(t.key)}>
+            {t.label}
+          </div>
+        ))}
+      </div>
+      <div className="page">
+        {renderTab()}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
